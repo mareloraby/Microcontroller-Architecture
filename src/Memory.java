@@ -5,11 +5,11 @@ public class Memory {
 
 
 
-    private int [] instructions = new int [1024];
-    private int [] datamemory = new int [2048];
-    private int [] GPRS = new int[64];
+    private short [] instructions = new short [1024];
+    private byte [] datamemory = new byte [2048];
+    private byte [] GPRS = new byte[64];
     private boolean [] SREG = new boolean[8]; //0 0 0 C V N S Z
-    private int PC = 0;
+    private byte PC = 0;
 
     public Memory(){
 
@@ -19,27 +19,27 @@ public class Memory {
 
 
 
-    public int[] getInstructions() {
+    public short[] getInstructions() {
         return instructions;
     }
 
-    public void setInstructions(int[] instructions) {
+    public void setInstructions(short[] instructions) {
         this.instructions = instructions;
     }
 
-    public int[] getDatamemory() {
+    public byte[] getDatamemory() {
         return datamemory;
     }
 
-    public void setDatamemory(int[] datamemory) {
+    public void setDatamemory(byte[] datamemory) {
         this.datamemory = datamemory;
     }
 
-    public int[] getGPRS() {
+    public byte[] getGPRS() {
         return GPRS;
     }
 
-    public void setGPRS(int[] GPRS) {
+    public void setGPRS(byte[] GPRS) {
         this.GPRS = GPRS;
     }
 
@@ -55,7 +55,7 @@ public class Memory {
         return PC;
     }
 
-    public void setPC(int PC) {
+    public void setPC(byte PC) {
         this.PC = PC;
     }
 
