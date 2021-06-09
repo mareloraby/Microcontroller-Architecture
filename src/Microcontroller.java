@@ -14,9 +14,14 @@ public class Microcontroller {
     private short fetch;
     private short decode;
     private short execute;
+    private byte opcode;
+    private byte r1;
+    private byte r2;
 
     public Microcontroller(){
-        instructions = new short [1024];
+        instructions = new short [1024]; //16 bit
+        Arrays.fill(instructions, (short) -1);
+
         datamemory = new byte [2048];
         Registers = new byte[64];
         SREG = new boolean[8]; //0 0 0 C V N S Z
@@ -34,65 +39,78 @@ public class Microcontroller {
     }
 
     void fetch(){
-        fetch = instructions[PC];
-        PC++;
+        if ( instructions[PC]!= -1) {
+            fetch = instructions[PC];
+            PC++;
+        }
+
     }
 
     void decode(){
-        decode = fetch;
 
+        if (fetch!=-1) {
+            decode = fetch;
 
+            opcode = (byte) ((decode & 0b1111000000000000) >> 12);  // bits15:12
+            System.out.println(opcode);
+
+            r1 = (byte) ((decode & 0b0000111111000000) >> 6);  // bits15:12
+            r2 = (byte) ((decode & 0b0000000000111111));  // bits11:0
+        }
     }
 
     void execute(){
 
-      //  execute.add();
-        //status registers
+       if (decode!= -1) {
+           execute = decode;
+           //
+           // status registers
 
 
-        switch(operation){
+           switch (opcode) {
 
-            case 0: //add
+               case 0: //add
 
 
-                break;
-            case 1://sub
+                   break;
+               case 1://sub
 
-                break;
-            case 2://mul
+                   break;
+               case 2://mul
 
-                break;
-            case 3://movI
+                   break;
+               case 3://movI
 
-                break;
-            case 4://BEQZ
+                   break;
+               case 4://BEQZ
 
-                //empty decode and execute
+                   //empty decode and execute
 
-                break;
-            case 5://ANDI
+                   break;
+               case 5://ANDI
 
-                break;
-            case 6://EOR
+                   break;
+               case 6://EOR
 
-                break;
-            case 7://BR
+                   break;
+               case 7://BR
 
-                break;
-            case 8://SAL
+                   break;
+               case 8://SAL
 
-                break;
-            case 9://SAR
+                   break;
+               case 9://SAR
 
-                break;
-            case 10://LDR
+                   break;
+               case 10://LDR
 
-                break;
-            case 11://STR
+                   break;
+               case 11://STR
 
-                break;
+                   break;
 
-        }
+           }
+       }
 
     }
 
