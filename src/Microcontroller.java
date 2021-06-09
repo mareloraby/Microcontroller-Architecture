@@ -129,6 +129,14 @@ public class Microcontroller {
         this.datamemory = datamemory;
     }
 
+    public byte[] getRegisters() {
+        return Registers;
+    }
+
+    public void setRegisters(byte[] registers) {
+        Registers = registers;
+    }
+
     public boolean[] getSREG() {
         return SREG;
     }
@@ -149,12 +157,15 @@ public class Microcontroller {
 
 
 
+
+
     public static void main(String[] args) {
 
         Microcontroller MC = new Microcontroller();
         int n = MC.instructions.length;
         int clkCycles = 3 + ((n-1)*1);
 
+        MC.parser();
 
         for(int i=0; i<n; i++){
 
@@ -162,13 +173,7 @@ public class Microcontroller {
             MC.decode();
             MC.fetch();
 
-
-
-
         }
-
-
-
 
 
     }
