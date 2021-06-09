@@ -20,18 +20,25 @@ public class Microcontroller {
     private byte opcode;
     private byte r1;
     private byte r2;
+    private int nofLines;
 
     public Microcontroller(){
         instructions = new short [1024]; //16 bit
         Arrays.fill(instructions, (short) -1);
 
         datamemory = new byte [2048];
+        Arrays.fill(datamemory, (byte) -1);
+
         Registers = new byte[64];
-        SREG = new boolean[8]; //0 0 0 C V N S Z
+        Arrays.fill(Registers, (byte) -1);
+
+
+        SREG = new boolean[8]; // 0 0 0 C V N S Z
         PC = 0;
         fetch =-1;
         decode=-1;
         execute=-1;
+        nofLines = 0;
 
     }
 
@@ -118,7 +125,7 @@ public class Microcontroller {
                 }
                 intNumber = intNumber.concat(extendedAdd);//first register
             }
-            if(!(Lines.get(i).get(1).charAt(0)>=48&&Lines.get(i).get(1).charAt(0)<=57)) {
+            if(!(Lines.get(i).get(2).charAt(0)>=48&&Lines.get(i).get(2).charAt(0)<=57)) {
                 Integer registerTwo = Integer.valueOf(Lines.get(i).get(2).substring(1));
                 String extendedAdd2 = Integer.toBinaryString(registerTwo);
                 while (extendedAdd2.length() < 6) {
@@ -141,13 +148,16 @@ public class Microcontroller {
 
     public void parser() throws IOException {
         ArrayList<ArrayList<String>> Lines = readFile("test");
+        nofLines = Lines.size();
         addToInstructionMemory(Lines, instructions);
     }
 
     void fetch(){
         if ( instructions[PC]!= -1) {
             fetch = instructions[PC];
+            System.out.println("Fetched: " + instructions[PC] );
             PC++;
+
         }
 
     }
@@ -158,10 +168,14 @@ public class Microcontroller {
             decode = fetch;
 
             opcode = (byte) ((decode & 0b1111000000000000) >> 12);  // bits15:12
-            System.out.println(opcode);
+            //System.out.println(opcode);
 
             r1 = (byte) ((decode & 0b0000111111000000) >> 6);  // bits15:12
             r2 = (byte) ((decode & 0b0000000000111111));  // bits11:0
+
+            System.out.println("Decoded: " + decode );
+
+
         }
     }
 
@@ -169,6 +183,11 @@ public class Microcontroller {
 
        if (decode!= -1) {
            execute = decode;
+
+           System.out.println("Executed: " + execute );
+           System.out.println(" OPCode: " + opcode + " R1: " + r1 + " R2: " + r2 );
+
+           Boolean print = true;
 
            switch (opcode) {
                case 0: //add
@@ -219,16 +238,30 @@ public class Microcontroller {
                    break;
 
                case 1://sub
+                   boolean flag = false;
+
+                   if((r1 > 0 && r2 < 0)  )
+                       flag = true;
+
                    r1 = (byte) (Registers[r1] - Registers[r2]);
+
+                   if((flag && r2 < 0 && r1 < 0) || (flag && r2 > 0 && r1 > 0))
+                       SREG[7-3] = true;
+
                    if(r1 != 0){
-                       SREG[0] = false;
+                       SREG[7-0] = false;
                    }
-                   SREG[1] = SREG[2] ^ SREG[3];
+                   SREG[7-1] = SREG[7-2] ^ SREG[7-3];
 
                    if ( r1 > Byte.MAX_VALUE)
-                       SREG[4] = true;
+                       SREG[7-4] = true;
                    else
-                       SREG[4] = false;
+                       SREG[7-4] = false;
+
+                   if(r1 < 0)
+                       SREG[7-2] = true;
+                   else
+                       SREG[7-2] = false;
 
                    break;
 
@@ -253,6 +286,7 @@ public class Microcontroller {
                        r1 = (byte) i;
                        PC = (byte) (PC + 1 + r1);
                    }
+                   print = false;
                    break;
 
                case 5://ANDI
@@ -292,6 +326,7 @@ public class Microcontroller {
                    PC = t1;
                    fetch = -1;
                    decode = -1;
+                   print = false;
                    break;
 
                case 8://SAL
@@ -303,8 +338,14 @@ public class Microcontroller {
                case 9://SAR
                    r1 = (byte) (r1 >> r2);
                    if(r1 != 0){
-                       SREG[0] = false;
+                       SREG[7-0] = false;
                    }
+
+                   if(r1 < 0)
+                       SREG[7-2] = true;
+                   else
+                       SREG[7-2] = false;
+
                    break;
 
                case 10://LDR
@@ -313,9 +354,16 @@ public class Microcontroller {
                    break;
                case 11://STR
                    datamemory[r2] = r1;
+                   print = false;
+                   System.out.println("Address in memory number " + r2 + " was changed to: " + datamemory[r2]);
                    break;
 
            }
+
+           if (print){
+               System.out.println(" Register number " + r1 + " was changed to: " + Registers[r1] );
+           }
+
        }
 
     }
@@ -368,10 +416,11 @@ public class Microcontroller {
     public static void main(String[] args) throws IOException {
 
         Microcontroller MC = new Microcontroller();
-        int n = MC.instructions.length;
+        MC.parser();
+
+        int n = MC.nofLines;
         int clkCycles = 3 + ((n-1)*1);
 
-        MC.parser();
 
         for(int i=0; i<n; i++){
 
@@ -379,7 +428,33 @@ public class Microcontroller {
             MC.decode();
             MC.fetch();
 
+            System.out.println("The Clock Cycle number: " + i);
+
+
         }
+
+        System.out.println("PC: " + MC.PC );
+        System.out.println("Z: " + MC.SREG[7] +" S: " + MC.SREG[6]+" N: " + MC.SREG[5]+" V: " + MC.SREG[4]+" C: " + MC.SREG[3]);
+        for (int i =0; i<MC.Registers.length; i++){
+            System.out.println(" Register #"+ i +" contains: " + ((MC.Registers[i]==-1) ? "Zero" : MC.Registers[i] ));
+        }
+
+        for (int i =0; i<MC.datamemory.length; i++){
+            System.out.println(" Data Memory address #"+ i +" contains: " + ((MC.datamemory[i]==-1) ? "Zero" : MC.datamemory[i] ));
+        }
+
+        for (int i =0; i<MC.instructions.length; i++){
+            System.out.println(" Instruction Memory address #"+ i +" contains: " + ((MC.instructions[i]==-1) ? "NULL" : MC.instructions[i] ));
+        }
+
+
+
+
+
+
+
+
+
 
 
     }
