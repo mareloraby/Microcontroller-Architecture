@@ -1,0 +1,4 @@
+add R0 R2
+sub R5 R19
+BEQZ R3 63
+EOR 23 R12
