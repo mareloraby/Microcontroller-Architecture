@@ -217,6 +217,7 @@ public class Microcontroller {
                    }
 
                    break;
+
                case 1://sub
                    r1 = (byte) (Registers[r1] - Registers[r2]);
                    if(r1 != 0){
