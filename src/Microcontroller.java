@@ -1,18 +1,19 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 
 public class Microcontroller {
 
 
-    private short [] instructions;
-    private byte [] datamemory;
-    private byte [] Registers;
-    private boolean [] SREG;
+    private short[] instructions;
+    private byte[] datamemory;
+    private byte[] Registers;
+    private boolean[] SREG;
 
-    private byte PC;
+    private short PC;
 
     private short fetch;
     private short decode;
@@ -22,22 +23,23 @@ public class Microcontroller {
     private byte r2;
     private int nofLines;
 
-    public Microcontroller(){
-        instructions = new short [1024]; //16 bit
+    private boolean waitBEQZFlag;
+
+    public Microcontroller() {
+        waitBEQZFlag = false;
+        instructions = new short[1024]; //16 bit
         Arrays.fill(instructions, (short) -1);
 
-        datamemory = new byte [2048];
-        Arrays.fill(datamemory, (byte) -1);
+        datamemory = new byte[2048];
 
         Registers = new byte[64];
-        Arrays.fill(Registers, (byte) -1);
 
 
         SREG = new boolean[8]; // 0 0 0 C V N S Z
         PC = 0;
-        fetch =-1;
-        decode=-1;
-        execute=-1;
+        fetch = -1;
+        decode = -1;
+        execute = -1;
         nofLines = 0;
 
     }
@@ -107,7 +109,7 @@ public class Microcontroller {
                     break;
             }
 
-            if(!(Lines.get(i).get(1).charAt(0)>=48&&Lines.get(i).get(1).charAt(0)<=57)) {
+            if (!(Lines.get(i).get(1).charAt(0) >= 48 && Lines.get(i).get(1).charAt(0) <= 57)) {
                 Integer registerOne = Integer.valueOf(Lines.get(i).get(1).substring(1));
 
                 String extendedAdd = Integer.toBinaryString(registerOne);
@@ -115,8 +117,7 @@ public class Microcontroller {
                     extendedAdd = "0".concat(extendedAdd);
                 }
                 intNumber = intNumber.concat(extendedAdd);//first register
-            }
-            else{
+            } else {
                 Integer registerOne = Integer.valueOf(Lines.get(i).get(1));
 
                 String extendedAdd = Integer.toBinaryString(registerOne);
@@ -125,16 +126,22 @@ public class Microcontroller {
                 }
                 intNumber = intNumber.concat(extendedAdd);//first register
             }
-            if(!(Lines.get(i).get(2).charAt(0)>=48&&Lines.get(i).get(2).charAt(0)<=57)) {
-                Integer registerTwo = Integer.valueOf(Lines.get(i).get(2).substring(1));
-                String extendedAdd2 = Integer.toBinaryString(registerTwo);
-                while (extendedAdd2.length() < 6) {
-                    extendedAdd2 = "0".concat(extendedAdd2);
+            if (!(Lines.get(i).get(2).charAt(0) >= 48 && Lines.get(i).get(2).charAt(0) <= 57)) {
+                if (Lines.get(i).get(2).charAt(0) == 45) {//negative sign
+                    byte registerTwo = Byte.valueOf(Lines.get(i).get(2));
+                    String negativeNumberRegisterTwo = Integer.toBinaryString(0b00111111 & registerTwo);
+                    intNumber = intNumber.concat(negativeNumberRegisterTwo);//second register
+                    instruction[i] = Short.parseShort(intNumber, 2);
+                } else {
+                    Integer registerTwo = Integer.valueOf(Lines.get(i).get(2).substring(1));
+                    String extendedAdd2 = Integer.toBinaryString(registerTwo);
+                    while (extendedAdd2.length() < 6) {
+                        extendedAdd2 = "0".concat(extendedAdd2);
+                    }
+                    intNumber = intNumber.concat(extendedAdd2);//second register
+                    instruction[i] = Short.parseShort(intNumber, 2);
                 }
-                intNumber = intNumber.concat(extendedAdd2);//second register
-                instruction[i] = Short.parseShort(intNumber, 2);
-            }
-            else{
+            } else {
                 Integer registerTwo = Integer.valueOf(Lines.get(i).get(2));
                 String extendedAdd2 = Integer.toBinaryString(registerTwo);
                 while (extendedAdd2.length() < 6) {
@@ -146,230 +153,331 @@ public class Microcontroller {
         }
     }
 
+    public static void main(String[] args) throws IOException {
+
+        Microcontroller MC = new Microcontroller();
+        MC.parser();
+
+        int n = MC.nofLines;
+        int clkCycles = 3 + ((n - 1) * 1);
+
+
+        for (int i = 1; i < clkCycles + 1; i++) {
+            System.out.println();
+
+            System.out.println("In Clock Cycle number: " + i);
+            System.out.println();
+            MC.execute();
+            if (!MC.waitBEQZFlag) {
+
+                MC.decode();
+                MC.fetch();
+            }
+            MC.waitBEQZFlag = false;
+            System.out.println("-----------------------------------");
+
+
+        }
+        System.out.println(" ");
+
+        System.out.println("This was the last clock cycle");
+        System.out.println(" ");
+        System.out.println("///////////////////////////////////");
+        System.out.println(" ");
+
+        System.out.println("The content of all registers are as follows:- ");
+        System.out.println(" ");
+        System.out.println("-----------------------------------");
+        System.out.println(" ");
+
+        System.out.println("PC Register contains the value: " + MC.PC);
+        System.out.println(" ");
+        System.out.println("-----------------------------------");
+        System.out.println(" ");
+
+        System.out.println("The Status Register (SREG) contains: ");
+
+        System.out.println("Z: " + MC.SREG[7] + " S: " + MC.SREG[6] + " N: " + MC.SREG[5] + " V: " + MC.SREG[4] + " C: " + MC.SREG[3]);
+        System.out.println(" ");
+        System.out.println("-----------------------------------");
+        System.out.println(" ");
+
+        System.out.println("The 64 General purpose registers (GPRS) contains: ");
+        boolean emptyfRegisters = true;
+        for (int i = 0; i < MC.Registers.length; i++) {
+            if ((MC.Registers[i] != 0)) {
+                emptyfRegisters = false;
+                System.out.println(" Register #" + i + " contains: " + MC.Registers[i]);
+            }
+        }
+        if (emptyfRegisters) {
+            System.out.println("Nothing, the Registers are all of value 0");
+        } else
+            System.out.println("Any Other unmentioned address is of value 0");
+
+        System.out.println(" ");
+        System.out.println("-----------------------------------");
+        System.out.println(" ");
+
+        System.out.println("The 2048 Sized Data Memory contains: ");
+        boolean emptyf = true;
+
+        for (int i = 0; i < MC.datamemory.length; i++) {
+            if (MC.datamemory[i] != 0) {
+                emptyf = false;
+                System.out.println(" Data Memory address #" + i + " contains: " + ((MC.datamemory[i] == -1) ? "Zero" : MC.datamemory[i]));
+            }
+        }
+        if (emptyf) {
+            System.out.println("Nothing, the Data Memory is all of value 0");
+        } else {
+            System.out.println("Any Other unmentioned address is of value 0");
+        }
+        System.out.println(" ");
+        System.out.println("-----------------------------------");
+        System.out.println(" ");
+        System.out.println("The 1024 Sized Instruction Memory contains: ");
+        boolean emptyfInstructions = true;
+        for (int i = 0; i < MC.instructions.length; i++) {
+            if (MC.instructions[i] != -1) {
+                emptyfInstructions = false;
+                System.out.println(" Instruction Memory address #" + i + " contains: " + ((MC.instructions[i] == -1) ? "NULL" : MC.instructions[i]));
+            }
+        }
+        if (emptyfInstructions) {
+            System.out.println("Nothing, the Data Memory is Empty");
+        } else
+            System.out.println("Any Other unmentioned address is empty");
+
+        System.out.println(" ");
+        System.out.println("-----------------------------------");
+        System.out.println(" ");
+
+    }
+
+    public static String invertDigits(String binaryInt) {
+        String result = binaryInt;
+        result = result.replace("0", " "); //temp replace 0s
+        result = result.replace("1", "0"); //replace 1s with 0s
+        result = result.replace(" ", "1"); //put the 1s back in
+        return result;
+    }
+
     public void parser() throws IOException {
         ArrayList<ArrayList<String>> Lines = readFile("test");
         nofLines = Lines.size();
         addToInstructionMemory(Lines, instructions);
     }
 
-    void fetch(){
-        if ( instructions[PC]!= -1) {
+    void fetch() {
+        System.out.println("Instruction number: " + PC);
+        if (instructions[PC] != -1) {
             fetch = instructions[PC];
-            System.out.println("Fetched: " + instructions[PC] );
-            PC++;
-
+            PC++;//is it possible that or should we increment even if this instruction is empty?
+            System.out.println("Fetched the Instruction code: " + instructions[PC] + " from position: " + PC);
+            System.out.println();
+        } else {
+            fetch = -1;
         }
-
+        //PC++; could/should it be here?
     }
 
-    void decode(){
+    void decode() {
 
-        if (fetch!=-1) {
+        if (fetch != -1) {
             decode = fetch;
 
             opcode = (byte) ((decode & 0b1111000000000000) >> 12);  // bits15:12
-            //System.out.println(opcode);
+
+            byte decimalValue = 0;
+            if ((decode & 0b0000000000100000) == 32) {
+                String invertedInt = invertDigits(Integer.toBinaryString(decode & 0b0000000000111111));
+                decimalValue = (byte) Integer.parseInt(invertedInt, 2);
+                decimalValue = Byte.parseByte(String.valueOf((decimalValue + 1) * -1));
+            } else {
+                decimalValue = (byte) (decode & 0b0000000000111111);
+            }
+
 
             r1 = (byte) ((decode & 0b0000111111000000) >> 6);  // bits15:12
-            r2 = (byte) ((decode & 0b0000000000111111));  // bits11:0
+            r2 = decimalValue;
 
-            System.out.println("Decoded: " + decode );
+            System.out.println("Decoded the instruction code: " + decode + " which was in position: " + (PC - 1));
+            System.out.println();
 
 
+        } else {
+            decode = -1;
         }
     }
 
-    void execute(){
+    void execute() {
 
-       if (decode!= -1) {
-           execute = decode;
+        if (decode != -1) {
+            execute = decode;
 
-           System.out.println("Executed: " + execute );
-           System.out.println(" OPCode: " + opcode + " R1: " + r1 + " R2: " + r2 );
+            System.out.println("Executed Instruction code: " + execute + " which was in position: " + ((fetch == -1) ? (PC - 1) : PC - 2));
+            System.out.println(" with OPCode: " + opcode + " R1: " + r1 + " and R2: " + r2);
 
-           Boolean print = true;
 
-           switch (opcode) {
-               case 0: //add
-                   byte temp1 = Registers[r1];
-                   byte temp2 = Registers[r2];
-                   byte temp3 = (byte)(temp1 + temp2);
-                   Registers[r1] =temp3;
+            Boolean print = true;
+            byte oldR1 = Registers[r1];
 
-                   if((temp1 + temp2)>Byte.MAX_VALUE) //C
-                   {
-                       SREG[3]=true;
-                   }
-                   else
-                   {
-                       SREG[3]=false;
-                   }
 
-                   byte mask = -128;
-                   byte s1 = (byte) ((temp1&mask)>>7);
-                   byte s2 = (byte) ((temp2&mask)>>7);
-                   byte s3 = (byte) ((temp3&mask)>>7);
-                   if(s1==s2 && s1!=s3)//V
-                   {
-                       SREG[4]=true;
-                   }
-                   else
-                   {
-                       SREG[4]=false;
-                   }
-                   if(temp3<0) //N
-                   {
-                       SREG[5]=true;
-                   }
-                   else
-                   {
-                       SREG[5]=false;
-                   }
-                   SREG[6] = SREG[5]^SREG[4]; //S
-                   if(temp3 == 0) //Z
-                   {
-                       SREG[7]= true;
-                   }
-                   else
-                   {
-                       SREG[7]= false;
-                   }
+            switch (opcode) {
+                case 0: //add
+                    byte temp1 = Registers[r1];
+                    byte temp2 = Registers[r2];
+                    byte temp3 = (byte) (temp1 + temp2);
+                    Registers[r1] = temp3;
 
-                   break;
+                    //C
+                    SREG[3] = (temp1 + temp2) > Byte.MAX_VALUE;
 
-               case 1://sub
-                   boolean flag = false;
+                    byte mask = -128;
+                    byte s1 = (byte) ((temp1 & mask) >> 7);
+                    byte s2 = (byte) ((temp2 & mask) >> 7);
+                    byte s3 = (byte) ((temp3 & mask) >> 7);
+                    //V
+                    SREG[4] = s1 == s2 && s1 != s3;
+                    //N
+                    SREG[5] = temp3 < 0;
+                    SREG[6] = SREG[5] ^ SREG[4]; //S
+                    //Z
+                    SREG[7] = temp3 == 0;
 
-                   if((r1 > 0 && r2 < 0)  )
-                       flag = true;
+                    break;
 
-                   r1 = (byte) (Registers[r1] - Registers[r2]);
+                case 1://sub
+                    boolean flag = r1 > 0 && r2 < 0;
 
-                   if((flag && r2 < 0 && r1 < 0) || (flag && r2 > 0 && r1 > 0))
-                       SREG[7-3] = true;
+                    r1 = (byte) (Registers[r1] - Registers[r2]);
 
-                   if(r1 != 0){
-                       SREG[7-0] = false;
-                   }
-                   SREG[7-1] = SREG[7-2] ^ SREG[7-3];
+                    if ((flag && r2 < 0 && r1 < 0) || (flag && r2 > 0 && r1 > 0))
+                        SREG[7 - 3] = true;
 
-                   if ( r1 > Byte.MAX_VALUE)
-                       SREG[7-4] = true;
-                   else
-                       SREG[7-4] = false;
+                    if (r1 != 0) {
+                        SREG[7 - 0] = false;
+                    }
+                    SREG[7 - 1] = SREG[7 - 2] ^ SREG[7 - 3];
 
-                   if(r1 < 0)
-                       SREG[7-2] = true;
-                   else
-                       SREG[7-2] = false;
+                    SREG[7 - 4] = r1 > Byte.MAX_VALUE;
 
-                   break;
+                    SREG[7 - 2] = r1 < 0;
 
-               case 2://mul
-                   if ((Registers[r1] * Registers[r2]) > Byte.MAX_VALUE)
-                       SREG[3] = true;
-                   else
-                       SREG[3] = false;
-                   Registers[r1] = (byte) (Registers[r1] * Registers[r2]);
-                   break;
+                    break;
 
-               case 3://movI
-                   Registers[r1] = Registers[r2];
-                   break;
+                case 2://mul
+                    SREG[3] = (Registers[r1] * Registers[r2]) > Byte.MAX_VALUE;
+                    Registers[r1] = (byte) (Registers[r1] * Registers[r2]);
+                    break;
 
-               case 4://BEQZ
-                   if(r1 == 0) {
-                       fetch = -1;
-                       decode = -1;
-                       String s = r2 + "0" + "0";
-                       int i = Integer.parseInt(s);
-                       r1 = (byte) i;
-                       PC = (byte) (PC + 1 + r1);
-                   }
-                   print = false;
-                   break;
+                case 3://movI
+                    Registers[r1] = r2;
+                    break;
 
-               case 5://ANDI
-                   if ((Registers[r1] & r2) < 1) SREG[5] = true;
-                   else SREG[5] = false;
-                   Registers[r1] = (byte) (Registers[r1] & r2);
-                   break;
+                case 4://BEQZ
+                    if (Registers[r1] == 0) {
+                        System.out.println("BEQZ is executed");
+                        fetch = -1;
+                        decode = -1;
+                        Short extendedBranchValue = Short.valueOf(r2);
+                        PC = Short.valueOf((short) (PC + 1 - 2 + extendedBranchValue));//-2 is the two instructions
+                        // that went into
+                        // fetching and decoding and caused the PC to increment by 2,
+                        // so now we are removing them again and just following the normal equation again
+                        System.out.println("PC is now: " + PC);
+                        waitBEQZFlag = true;
 
-               case 6://EOR
-                   byte tem1 = Registers[r1];
-                   byte tem2 = Registers[r2];
-                   byte tem3 = (byte)(tem1 ^ tem2);
-                   Registers[r1] =tem3;
-                   if(tem3<0) //N
-                   {
-                       SREG[5]=true;
-                   }
-                   else {
-                       SREG[5] = false;
-                   }
-                   if(tem3 == 0) //Z
-                   {
-                       SREG[7]= true;
-                   }
-                   else
-                   {
-                       SREG[7]= false;
-                   }
+                    }
+                    print = false;
+                    break;
 
-                   break;
+                case 5://ANDI
+                    SREG[5] = (Registers[r1] & r2) < 1;
+                    Registers[r1] = (byte) (Registers[r1] & r2);
+                    break;
 
-               case 7://BR
-                   String rs1 = Registers[r1] + "";
-                   String rs2 = Registers[r2] + "";
-                   String rs3 = rs1 + rs2;
-                   byte t1 = Byte.parseByte(rs3);
-                   PC = t1;
-                   fetch = -1;
-                   decode = -1;
-                   print = false;
-                   break;
+                case 6://EOR
+                    byte tem1 = Registers[r1];
+                    byte tem2 = Registers[r2];
+                    byte tem3 = (byte) (tem1 ^ tem2);
+                    Registers[r1] = tem3;
+                    //N
+                    SREG[5] = tem3 < 0;
+                    //Z
+                    SREG[7] = tem3 == 0;
 
-               case 8://SAL
-                   if ((Registers[r1] << r2) ==0) SREG[7] = true;
-                   else SREG[7] = false;
-                   Registers[r1] = (byte) (Registers[r1] << r2);
-                   break;
+                    break;
 
-               case 9://SAR
-                   r1 = (byte) (r1 >> r2);
-                   if(r1 != 0){
-                       SREG[7-0] = false;
-                   }
+                case 7://BR
 
-                   if(r1 < 0)
-                       SREG[7-2] = true;
-                   else
-                       SREG[7-2] = false;
+                    String rs1 = Integer.toBinaryString(Registers[r1]);
+                    int number = Registers[r1];
+                    while (rs1.length() < 8) {//sign extend incase positive
+                        rs1 = "0".concat(rs1);
+                    }
+                    if (rs1.length() > 8) {//incase if negative then it would be 32 bits because set into int
+                        rs1 = rs1.substring(32 - 8);
+                    }
+                    String rs2 = Integer.toBinaryString(Registers[r2]);
+                    int number2 = Registers[r2];
+                    if (rs2.length() > 8) {//incase if negative then it would be 32 bits because set into int
+                        rs2 = rs2.substring(32 - 8);
+                    }
+                    while (rs2.length() < 8) {//sign extend incase positive
+                        rs2 = "0".concat(rs2);
+                    }
+                    String rs3 = rs1 + rs2;
+                    PC = ((Integer) (Integer.parseInt(rs3, 2))).shortValue(); //fix issue here that it won't accept this value, says its out of range
+                    fetch = -1;
+                    decode = -1;
+                    print = false;
+                    waitBEQZFlag = true;
+                    System.out.println("PC is now: " + PC);
+                    break;
 
-                   break;
+                case 8://SAL
+                    SREG[7] = (Registers[r1] << r2) == 0;
+                    Registers[r1] = (byte) (Registers[r1] << r2);
+                    break;
 
-               case 10://LDR
-                   r1 = datamemory[r2];
+                case 9://SAR
+                    r1 = (byte) (r1 >> r2);
+                    if (r1 != 0) {
+                        SREG[7 - 0] = false;
+                    }
 
-                   break;
-               case 11://STR
-                   datamemory[r2] = r1;
-                   print = false;
-                   System.out.println("Address in memory number " + r2 + " was changed to: " + datamemory[r2]);
-                   break;
+                    SREG[7 - 2] = r1 < 0;
 
-           }
+                    break;
 
-           if (print){
-               System.out.println(" Register number " + r1 + " was changed to: " + Registers[r1] );
-           }
+                case 10://LDR
+                    r1 = datamemory[r2];
 
-       }
+                    break;
+                case 11://STR
+                    datamemory[r2] = r1;
+                    print = false;
+                    System.out.println("Address in memory number " + r2 + " was changed to: " + datamemory[r2]);
+                    break;
+
+            }
+
+            if (print) {
+
+                System.out.println(" Register number " + r1 + " was changed to: " + Registers[r1] + " from: " + oldR1);
+            }
+            System.out.println();
+
+
+        }
 
     }
 
-
-    public short[] getInstructions() { return instructions; }
+    public short[] getInstructions() {
+        return instructions;
+    }
 
     public void setInstructions(short[] instructions) {
         this.instructions = instructions;
@@ -407,56 +515,5 @@ public class Microcontroller {
         this.PC = PC;
     }
 
-
-
-
-
-
-
-    public static void main(String[] args) throws IOException {
-
-        Microcontroller MC = new Microcontroller();
-        MC.parser();
-
-        int n = MC.nofLines;
-        int clkCycles = 3 + ((n-1)*1);
-
-
-        for(int i=0; i<n; i++){
-
-            MC.execute();
-            MC.decode();
-            MC.fetch();
-
-            System.out.println("The Clock Cycle number: " + i);
-
-
-        }
-
-        System.out.println("PC: " + MC.PC );
-        System.out.println("Z: " + MC.SREG[7] +" S: " + MC.SREG[6]+" N: " + MC.SREG[5]+" V: " + MC.SREG[4]+" C: " + MC.SREG[3]);
-        for (int i =0; i<MC.Registers.length; i++){
-            System.out.println(" Register #"+ i +" contains: " + ((MC.Registers[i]==-1) ? "Zero" : MC.Registers[i] ));
-        }
-
-        for (int i =0; i<MC.datamemory.length; i++){
-            System.out.println(" Data Memory address #"+ i +" contains: " + ((MC.datamemory[i]==-1) ? "Zero" : MC.datamemory[i] ));
-        }
-
-        for (int i =0; i<MC.instructions.length; i++){
-            System.out.println(" Instruction Memory address #"+ i +" contains: " + ((MC.instructions[i]==-1) ? "NULL" : MC.instructions[i] ));
-        }
-
-
-
-
-
-
-
-
-
-
-
-    }
 
 }
