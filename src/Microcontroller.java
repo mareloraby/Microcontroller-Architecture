@@ -475,45 +475,5 @@ public class Microcontroller {
 
     }
 
-    public short[] getInstructions() {
-        return instructions;
-    }
-
-    public void setInstructions(short[] instructions) {
-        this.instructions = instructions;
-    }
-
-    public byte[] getDatamemory() {
-        return datamemory;
-    }
-
-    public void setDatamemory(byte[] datamemory) {
-        this.datamemory = datamemory;
-    }
-
-    public byte[] getRegisters() {
-        return Registers;
-    }
-
-    public void setRegisters(byte[] registers) {
-        Registers = registers;
-    }
-
-    public boolean[] getSREG() {
-        return SREG;
-    }
-
-    public void setSREG(boolean[] SREG) {
-        this.SREG = SREG;
-    }
-
-    public int getPC() {
-        return PC;
-    }
-
-    public void setPC(byte PC) {
-        this.PC = PC;
-    }
-
 
 }
