@@ -294,13 +294,19 @@ public class Microcontroller {
             opcode = (byte) ((decode & 0b1111000000000000) >> 12);  // bits15:12
 
             byte decimalValue = 0;
-            if ((decode & 0b0000000000100000) == 32) {
-                String invertedInt = invertDigits(Integer.toBinaryString(decode & 0b0000000000111111));
-                decimalValue = (byte) Integer.parseInt(invertedInt, 2);
-                decimalValue = Byte.parseByte(String.valueOf((decimalValue + 1) * -1));
-            } else {
-                decimalValue = (byte) (decode & 0b0000000000111111);
+            if (opcode !=7) { //not BR
+
+                if ((decode & 0b0000000000100000) == 32) {
+                    String invertedInt = invertDigits(Integer.toBinaryString(decode & 0b0000000000111111));
+                    decimalValue = (byte) Integer.parseInt(invertedInt, 2);
+                    decimalValue = Byte.parseByte(String.valueOf((decimalValue + 1) * -1));
+                } else {
+                    decimalValue = (byte) (decode & 0b0000000000111111);
+                }
             }
+
+            else {decimalValue = (byte) (decode & 0b0000000000111111);}
+
 
 
             r1 = (byte) ((decode & 0b0000111111000000) >> 6);  // bits15:12
