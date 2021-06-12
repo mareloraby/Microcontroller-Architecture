@@ -148,7 +148,9 @@ public class Microcontroller {
                     extendedAdd2 = "0".concat(extendedAdd2);
                 }
                 intNumber = intNumber.concat(extendedAdd2);//second register
+
                 instruction[i] = Short.parseShort(intNumber, 2);
+
             }
         }
     }
@@ -257,9 +259,9 @@ public class Microcontroller {
 
     public static String invertDigits(String binaryInt) {
         String result = binaryInt;
-        result = result.replace("0", " "); //temp replace 0s
+        result = result.replace("0", "j"); //temp replace 0s
         result = result.replace("1", "0"); //replace 1s with 0s
-        result = result.replace(" ", "1"); //put the 1s back in
+        result = result.replace("j", "1"); //put the 1s back in
         return result;
     }
 
@@ -273,8 +275,9 @@ public class Microcontroller {
         System.out.println("Instruction number: " + PC);
         if (instructions[PC] != -1) {
             fetch = instructions[PC];
+            System.out.println("Fetched the Instruction code: " + instructions[PC] + " from address: " + PC);
             PC++;//is it possible that or should we increment even if this instruction is empty?
-            System.out.println("Fetched the Instruction code: " + instructions[PC] + " from position: " + PC);
+
             System.out.println();
         } else {
             fetch = -1;
@@ -285,6 +288,7 @@ public class Microcontroller {
     void decode() {
 
         if (fetch != -1) {
+
             decode = fetch;
 
             opcode = (byte) ((decode & 0b1111000000000000) >> 12);  // bits15:12
@@ -302,7 +306,9 @@ public class Microcontroller {
             r1 = (byte) ((decode & 0b0000111111000000) >> 6);  // bits15:12
             r2 = decimalValue;
 
-            System.out.println("Decoded the instruction code: " + decode + " which was in position: " + (PC - 1));
+            System.out.println("R2 IS " + decimalValue);
+
+            System.out.println("Decoded the instruction code: " + decode + " which was in address: " + (PC - 1));
             System.out.println();
 
 
@@ -312,6 +318,7 @@ public class Microcontroller {
     }
 
     void execute() {
+
 
         if (decode != -1) {
             execute = decode;
@@ -332,7 +339,7 @@ public class Microcontroller {
                     Registers[r1] = temp3;
 
                     //C
-                    SREG[3] = (temp1 + temp2) > Byte.MAX_VALUE;
+                    SREG[3] = temp3 > Byte.MAX_VALUE;
 
                     byte mask = -128;
                     byte s1 = (byte) ((temp1 & mask) >> 7);
@@ -349,27 +356,47 @@ public class Microcontroller {
                     break;
 
                 case 1://sub
-                    boolean flag = r1 > 0 && r2 < 0;
+                    boolean flag = Registers[r1] > 0 && Registers[r2] < 0;
 
-                    r1 = (byte) (Registers[r1] - Registers[r2]);
+                    temp1 = Registers[r1];
+                    temp2 = Registers[r2];
+                    temp3 = (byte) (temp1 - temp2);
 
-                    if ((flag && r2 < 0 && r1 < 0) || (flag && r2 > 0 && r1 > 0))
-                        SREG[7 - 3] = true;
+                    Registers[r1] = (byte) (Registers[r1] - Registers[r2]);
 
-                    if (r1 != 0) {
-                        SREG[7 - 0] = false;
-                    }
-                    SREG[7 - 1] = SREG[7 - 2] ^ SREG[7 - 3];
 
-                    SREG[7 - 4] = r1 > Byte.MAX_VALUE;
+                   // System.out.println(temp3 + " here");
 
-                    SREG[7 - 2] = r1 < 0;
+                    SREG[3] = temp3 > Byte.MAX_VALUE;
+
+
+                    mask = -128;
+                    s1 = (byte) ((temp1 & mask) >> 7);
+                    s2 = (byte) ((temp2 & mask) >> 7);
+                    s3 = (byte) ((temp3 & mask) >> 7);
+                    //V
+                    SREG[4] = (s1 == s2) && (s1 != s3); //overflow
+
+                    SREG[5] = temp3 < 0; //negative
+
+                    SREG[6] = SREG[5] ^ SREG[4]; // signed
+
+                    SREG[7] = Registers[r1] == 0; // zero
+
 
                     break;
 
                 case 2://mul
-                    SREG[3] = (Registers[r1] * Registers[r2]) > Byte.MAX_VALUE;
-                    Registers[r1] = (byte) (Registers[r1] * Registers[r2]);
+
+                    int x = (Registers[r1] * Registers[r2]);
+                    Registers[r1] = (byte) x;
+
+                    SREG[3] = x > Byte.MAX_VALUE;
+                    SREG[5] = Registers[r1]< 0; //negative
+                    SREG[7] = Registers[r1] == 0;
+
+
+
                     break;
 
                 case 3://movI
@@ -394,8 +421,14 @@ public class Microcontroller {
                     break;
 
                 case 5://ANDI
-                    SREG[5] = (Registers[r1] & r2) < 1;
-                    Registers[r1] = (byte) (Registers[r1] & r2);
+
+
+                    System.out.println(r2 + " heereee");
+                    Registers[r1] = (byte) (Registers[r1] & (byte) r2);
+
+                    SREG[5] = (Registers[r1] ) < 0;
+                    SREG[7] = (Registers[r1] ) == 0;
+
                     break;
 
                 case 6://EOR
@@ -438,22 +471,22 @@ public class Microcontroller {
                     break;
 
                 case 8://SAL
-                    SREG[7] = (Registers[r1] << r2) == 0;
+                    SREG[7] = ((Registers[r1]) << r2) == 0;
                     Registers[r1] = (byte) (Registers[r1] << r2);
                     break;
 
                 case 9://SAR
-                    r1 = (byte) (r1 >> r2);
-                    if (r1 != 0) {
-                        SREG[7 - 0] = false;
+                    Registers[r1] = (byte) (Registers[r1] >> r2);
+                    if (Registers[r1] != 0) {
+                        SREG[7] = false;
                     }
 
-                    SREG[7 - 2] = r1 < 0;
+                    SREG[5] = Registers[r1] < 0;
 
                     break;
 
                 case 10://LDR
-                    r1 = datamemory[r2];
+                    Registers[r1] = datamemory[r2];
 
                     break;
                 case 11://STR
