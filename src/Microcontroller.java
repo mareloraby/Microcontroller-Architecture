@@ -471,8 +471,10 @@ public class Microcontroller {
                     break;
 
                 case 8://SAL
-                    SREG[7] = ((Registers[r1]) << r2) == 0;
+
                     Registers[r1] = (byte) (Registers[r1] << r2);
+                    SREG[7] = ((Registers[r1])) == 0;
+                    SREG[7] = ((Registers[r1])) < 0;
                     break;
 
                 case 9://SAR
