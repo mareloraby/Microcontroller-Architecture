@@ -24,6 +24,10 @@ public class Microcontroller {
     private int nofLines;
 
     private boolean waitBEQZFlag;
+    private int clkCycles;
+    private int n;
+    private int i;
+
 
     public Microcontroller() {
         waitBEQZFlag = false;
@@ -41,6 +45,9 @@ public class Microcontroller {
         decode = -1;
         execute = -1;
         nofLines = 0;
+        clkCycles = 0;
+        n = 0;
+        i=0;
 
     }
 
@@ -102,10 +109,10 @@ public class Microcontroller {
                     intNumber = "1001";
                     break;
                 case "LDR":
-                    intNumber = "1011";
+                    intNumber = "1010";
                     break;
                 case "STR":
-                    intNumber = "1100";
+                    intNumber = "1011";
                     break;
             }
 
@@ -149,113 +156,14 @@ public class Microcontroller {
                 }
                 intNumber = intNumber.concat(extendedAdd2);//second register
 
-                instruction[i] = Short.parseShort(intNumber, 2);
+                instruction[i] = //Short.parseShort(intNumber, 2);
+                ((Integer) (Integer.parseInt(intNumber, 2))).shortValue();
+
 
             }
         }
     }
 
-    public static void main(String[] args) throws IOException {
-
-        Microcontroller MC = new Microcontroller();
-        MC.parser();
-
-        int n = MC.nofLines;
-        int clkCycles = 3 + ((n - 1) * 1);
-
-
-        for (int i = 1; i < clkCycles + 1; i++) {
-            System.out.println();
-
-            System.out.println("In Clock Cycle number: " + i);
-            System.out.println();
-            MC.execute();
-            if (!MC.waitBEQZFlag) {
-
-                MC.decode();
-                MC.fetch();
-            }
-            MC.waitBEQZFlag = false;
-            System.out.println("-----------------------------------");
-
-
-        }
-        System.out.println(" ");
-
-        System.out.println("This was the last clock cycle");
-        System.out.println(" ");
-        System.out.println("///////////////////////////////////");
-        System.out.println(" ");
-
-        System.out.println("The content of all registers are as follows:- ");
-        System.out.println(" ");
-        System.out.println("-----------------------------------");
-        System.out.println(" ");
-
-        System.out.println("PC Register contains the value: " + MC.PC);
-        System.out.println(" ");
-        System.out.println("-----------------------------------");
-        System.out.println(" ");
-
-        System.out.println("The Status Register (SREG) contains: ");
-
-        System.out.println("Z: " + MC.SREG[7] + " S: " + MC.SREG[6] + " N: " + MC.SREG[5] + " V: " + MC.SREG[4] + " C: " + MC.SREG[3]);
-        System.out.println(" ");
-        System.out.println("-----------------------------------");
-        System.out.println(" ");
-
-        System.out.println("The 64 General purpose registers (GPRS) contains: ");
-        boolean emptyfRegisters = true;
-        for (int i = 0; i < MC.Registers.length; i++) {
-            if ((MC.Registers[i] != 0)) {
-                emptyfRegisters = false;
-                System.out.println(" Register #" + i + " contains: " + MC.Registers[i]);
-            }
-        }
-        if (emptyfRegisters) {
-            System.out.println("Nothing, the Registers are all of value 0");
-        } else
-            System.out.println("Any Other unmentioned address is of value 0");
-
-        System.out.println(" ");
-        System.out.println("-----------------------------------");
-        System.out.println(" ");
-
-        System.out.println("The 2048 Sized Data Memory contains: ");
-        boolean emptyf = true;
-
-        for (int i = 0; i < MC.datamemory.length; i++) {
-            if (MC.datamemory[i] != 0) {
-                emptyf = false;
-                System.out.println(" Data Memory address #" + i + " contains: " + ((MC.datamemory[i] == -1) ? "Zero" : MC.datamemory[i]));
-            }
-        }
-        if (emptyf) {
-            System.out.println("Nothing, the Data Memory is all of value 0");
-        } else {
-            System.out.println("Any Other unmentioned address is of value 0");
-        }
-        System.out.println(" ");
-        System.out.println("-----------------------------------");
-        System.out.println(" ");
-        System.out.println("The 1024 Sized Instruction Memory contains: ");
-        boolean emptyfInstructions = true;
-        for (int i = 0; i < MC.instructions.length; i++) {
-            if (MC.instructions[i] != -1) {
-                emptyfInstructions = false;
-                System.out.println(" Instruction Memory address #" + i + " contains: " + ((MC.instructions[i] == -1) ? "NULL" : MC.instructions[i]));
-            }
-        }
-        if (emptyfInstructions) {
-            System.out.println("Nothing, the Data Memory is Empty");
-        } else
-            System.out.println("Any Other unmentioned address is empty");
-
-        System.out.println(" ");
-        System.out.println("-----------------------------------");
-        System.out.println(" ");
-
-    }
 
     public static String invertDigits(String binaryInt) {
         String result = binaryInt;
@@ -272,6 +180,8 @@ public class Microcontroller {
     }
 
     public boolean getCarry(byte x, int y){
+        System.out.println("Byte val " + x);
+        System.out.println("Integer Val "+y);
 
         if (x==y){
             return false;
@@ -279,16 +189,16 @@ public class Microcontroller {
         else if(x<0 && y<0 && x>y){
             return true;
         }
-        else if(x>0 && y>0 && x<y) {
+        else if(x>=0 && y>=0 && x<y) {
 
             return y>Byte.MAX_VALUE;
         }
-        else if(x<0 && y>0){
+        else if(x<0 && y>=0){
 
             return false;
 
         }
-        else if(x>0 && y<0) {
+        else if(x>=0 && y<0) {
             return true;
         }
         else return false;
@@ -334,7 +244,7 @@ public class Microcontroller {
             r1 = (byte) ((decode & 0b0000111111000000) >> 6);  // bits15:12
             r2 = decimalValue;
 
-            System.out.println("R2 IS " + decimalValue);
+            System.out.println("Rt IS " + decimalValue);
 
             System.out.println("Decoded the instruction code: " + decode + " which was in address: " + (PC - 1));
             System.out.println();
@@ -427,6 +337,7 @@ public class Microcontroller {
                     break;
 
                 case 2://mul
+
                     int z = (Registers[r1] * Registers[r2]);
                     Registers[r1] = (byte) z;
                     //carry
@@ -451,12 +362,16 @@ public class Microcontroller {
                         fetch = -1;
                         decode = -1;
                         Short extendedBranchValue = Short.valueOf(r2);
-                        PC = Short.valueOf((short) (PC + 1 - 2 + extendedBranchValue));//-2 is the two instructions
+                        PC = Short.valueOf((short) (PC + 1 - 2 + extendedBranchValue));
+                        //-2 is the two instructions
                         // that went into
                         // fetching and decoding and caused the PC to increment by 2,
                         // so now we are removing them again and just following the normal equation again
                         System.out.println("PC is now: " + PC);
                         waitBEQZFlag = true;
+
+                        clkCycles = 3*(n - PC) + 1;
+                        i = 1;
 
                     }
                     print = false;
@@ -486,6 +401,7 @@ public class Microcontroller {
 
                 case 7://BR
 
+
                     String rs1 = Integer.toBinaryString(Registers[r1]);
                     int number = Registers[r1];
                     while (rs1.length() < 8) {//sign extend incase positive
@@ -509,6 +425,11 @@ public class Microcontroller {
                     print = false;
                     waitBEQZFlag = true;
                     System.out.println("PC is now: " + PC);
+
+                    clkCycles = 3*(n - PC) + 1;
+                    i = 1;
+
+
                     break;
 
                 case 8://SAL
@@ -533,7 +454,7 @@ public class Microcontroller {
 
                     break;
                 case 11://STR
-                    datamemory[r2] = r1;
+                    datamemory[r2] = Registers[r1];
                     print = false;
                     System.out.println("Address in memory number " + r2 + " was changed to: " + datamemory[r2]);
                     break;
@@ -548,6 +469,104 @@ public class Microcontroller {
 
 
         }
+
+    }
+
+    public static void main(String[] args) throws IOException {
+
+        Microcontroller MC = new Microcontroller();
+        MC.parser();
+
+        MC.n = MC.nofLines;
+        MC.clkCycles = 3 + ((MC.n - 1) * 1);
+
+
+        for (MC.i = 1; MC.i < MC.clkCycles + 1; MC.i++) {
+            System.out.println();
+
+            System.out.println("In Clock Cycle number: " + MC.i);
+            System.out.println();
+            MC.execute();
+            if (!MC.waitBEQZFlag) {
+
+                MC.decode();
+                MC.fetch();
+            }
+            MC.waitBEQZFlag = false;
+            System.out.println("-----------------------------------");
+
+
+        }
+        System.out.println(" ");
+
+        System.out.println("This was the last clock cycle");
+        System.out.println(" ");
+        System.out.println("//////////////////////////////////////////////////////////////////////");
+        System.out.println(" ");
+
+        System.out.println("The content of all registers are as follows:- ");
+
+        System.out.println(" ");
+
+        System.out.println("PC Register contains the value: " + MC.PC);
+        System.out.println(" ");
+
+        System.out.println("The Status Register (SREG) contains: ");
+
+        System.out.println("Z: " + MC.SREG[7] + " S: " + MC.SREG[6] + " N: " + MC.SREG[5] + " V: " + MC.SREG[4] + " C: " + MC.SREG[3]);
+
+        System.out.println(" ");
+
+        System.out.println("The 64 General purpose registers (GPRS) contains: ");
+        boolean emptyfRegisters = true;
+        for (int i = 0; i < MC.Registers.length; i++) {
+            if ((MC.Registers[i] != 0)) {
+                emptyfRegisters = false;
+                System.out.println(" Register #" + i + " contains: " + MC.Registers[i]);
+            }
+        }
+        if (emptyfRegisters) {
+            System.out.println("Nothing, the Registers are all of value 0");
+        } else
+            System.out.println("Any Other unmentioned address is of value 0");
+
+        System.out.println(" ");
+        System.out.println("-----------------------------------");
+        System.out.println(" ");
+
+        System.out.println("The 2048 Sized Data Memory contains: ");
+        boolean emptyf = true;
+
+        for (int i = 0; i < MC.datamemory.length; i++) {
+            if (MC.datamemory[i] != 0) {
+                emptyf = false;
+                System.out.println(" Data Memory address #" + i + " contains: " + ((MC.datamemory[i] == -1) ? "Zero" : MC.datamemory[i]));
+            }
+        }
+        if (emptyf) {
+            System.out.println("Nothing, the Data Memory is all of value 0");
+        } else {
+            System.out.println("Any Other unmentioned address is of value 0");
+        }
+        System.out.println(" ");
+        System.out.println("-----------------------------------");
+        System.out.println(" ");
+        System.out.println("The 1024 Sized Instruction Memory contains: ");
+        boolean emptyfInstructions = true;
+        for (int i = 0; i < MC.instructions.length; i++) {
+            if (MC.instructions[i] != -1) {
+                emptyfInstructions = false;
+                System.out.println(" Instruction Memory address #" + i + " contains: " + ((MC.instructions[i] == -1) ? "NULL" : MC.instructions[i]));
+            }
+        }
+        if (emptyfInstructions) {
+            System.out.println("Nothing, the Data Memory is Empty");
+        } else
+            System.out.println("Any Other unmentioned address is empty");
+
+        System.out.println(" ");
+        System.out.println("-----------------------------------");
+        System.out.println(" ");
 
     }
 
