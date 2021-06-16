@@ -342,9 +342,14 @@ public class Microcontroller {
                     byte temp1 = Registers[r1];
                     byte temp2 = Registers[r2];
                     byte temp3 = (byte) (temp1 + temp2);
+
                     Registers[r1] = temp3;
 
                     //C
+
+
+
+
                     SREG[3] = temp3 > Byte.MAX_VALUE;
 
                     byte mask = -128;
@@ -372,7 +377,7 @@ public class Microcontroller {
 
 
                    // System.out.println(temp3 + " here");
-
+                    //carry
                     SREG[3] = temp3 > Byte.MAX_VALUE;
 
 
@@ -396,7 +401,7 @@ public class Microcontroller {
 
                     int x = (Registers[r1] * Registers[r2]);
                     Registers[r1] = (byte) x;
-
+                    //carry
                     SREG[3] = x > Byte.MAX_VALUE;
                     SREG[5] = Registers[r1]< 0; //negative
                     SREG[7] = Registers[r1] == 0;
