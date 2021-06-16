@@ -271,6 +271,31 @@ public class Microcontroller {
         addToInstructionMemory(Lines, instructions);
     }
 
+    public boolean getCarry(byte x, int y){
+
+        if (x==y){
+            return false;
+        }
+        else if(x<0 && y<0 && x>y){
+            return true;
+        }
+        else if(x>0 && y>0 && x<y) {
+
+            return y>Byte.MAX_VALUE;
+        }
+        else if(x<0 && y>0){
+
+            return false;
+
+        }
+        else if(x>0 && y<0) {
+            return true;
+        }
+        else return false;
+
+
+    }
+
     void fetch() {
         System.out.println("Instruction number: " + PC);
         if (instructions[PC] != -1) {
@@ -294,7 +319,7 @@ public class Microcontroller {
             opcode = (byte) ((decode & 0b1111000000000000) >> 12);  // bits15:12
 
             byte decimalValue = 0;
-            if (opcode !=7) { //not BR
+
 
                 if ((decode & 0b0000000000100000) == 32) {
                     String invertedInt = invertDigits(Integer.toBinaryString(decode & 0b0000000000111111));
@@ -303,9 +328,6 @@ public class Microcontroller {
                 } else {
                     decimalValue = (byte) (decode & 0b0000000000111111);
                 }
-            }
-
-            else {decimalValue = (byte) (decode & 0b0000000000111111);}
 
 
 
@@ -341,16 +363,18 @@ public class Microcontroller {
                 case 0: //add
                     byte temp1 = Registers[r1];
                     byte temp2 = Registers[r2];
+
                     byte temp3 = (byte) (temp1 + temp2);
 
                     Registers[r1] = temp3;
 
                     //C
 
+                    int y = temp1+temp2;
+                    byte x = (byte) (temp1 + temp2);
 
 
-
-                    SREG[3] = temp3 > Byte.MAX_VALUE;
+                    SREG[3] = getCarry(x,y);
 
                     byte mask = -128;
                     byte s1 = (byte) ((temp1 & mask) >> 7);
@@ -378,7 +402,12 @@ public class Microcontroller {
 
                    // System.out.println(temp3 + " here");
                     //carry
-                    SREG[3] = temp3 > Byte.MAX_VALUE;
+                    y = temp1-temp2;
+                    x = (byte) (temp1 - temp2);
+                    SREG[3] = getCarry(x,y);
+
+
+                   // SREG[3] = temp3 > Byte.MAX_VALUE;
 
 
                     mask = -128;
@@ -398,11 +427,13 @@ public class Microcontroller {
                     break;
 
                 case 2://mul
-
-                    int x = (Registers[r1] * Registers[r2]);
-                    Registers[r1] = (byte) x;
+                    int z = (Registers[r1] * Registers[r2]);
+                    Registers[r1] = (byte) z;
                     //carry
-                    SREG[3] = x > Byte.MAX_VALUE;
+
+                    SREG[3] = getCarry((byte) z,z);
+
+                    //SREG[3] = z > Byte.MAX_VALUE;
                     SREG[5] = Registers[r1]< 0; //negative
                     SREG[7] = Registers[r1] == 0;
 
@@ -434,7 +465,6 @@ public class Microcontroller {
                 case 5://ANDI
 
 
-                    System.out.println(r2 + " heereee");
                     Registers[r1] = (byte) (Registers[r1] & (byte) r2);
 
                     SREG[5] = (Registers[r1] ) < 0;
