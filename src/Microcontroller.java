@@ -180,9 +180,6 @@ public class Microcontroller {
     }
 
     public boolean getCarry(byte x, int y){
-        System.out.println("Byte val " + x);
-        System.out.println("Integer Val "+y);
-
         if (x==y){
             return false;
         }
@@ -202,7 +199,6 @@ public class Microcontroller {
             return true;
         }
         else return false;
-
 
     }
 
@@ -244,9 +240,8 @@ public class Microcontroller {
             r1 = (byte) ((decode & 0b0000111111000000) >> 6);  // bits15:12
             r2 = decimalValue;
 
-            System.out.println("Rt IS " + decimalValue);
-
             System.out.println("Decoded the instruction code: " + decode + " which was in address: " + (PC - 1));
+            System.out.println(" Instruction OPCode: " + opcode + " Rs: " + r1 + " and Rt: " + r2);
             System.out.println();
 
 
@@ -262,7 +257,7 @@ public class Microcontroller {
             execute = decode;
 
             System.out.println("Executed Instruction code: " + execute + " which was in position: " + ((fetch == -1) ? (PC - 1) : PC - 2));
-            System.out.println(" with OPCode: " + opcode + " R1: " + r1 + " and R2: " + r2);
+            System.out.println(" with OPCode: " + opcode + " Rs: " + r1 + " and Rt: " + r2);
 
 
             Boolean print = true;
@@ -297,6 +292,7 @@ public class Microcontroller {
                     SREG[6] = SREG[5] ^ SREG[4]; //S
                     //Z
                     SREG[7] = temp3 == 0;
+
 
                     break;
 
@@ -454,16 +450,20 @@ public class Microcontroller {
 
                     break;
                 case 11://STR
+                    byte oldval = datamemory[r2];
+
                     datamemory[r2] = Registers[r1];
                     print = false;
-                    System.out.println("Address in memory number " + r2 + " was changed to: " + datamemory[r2]);
+                    System.out.println(" Address in memory number " + r2 + " was changed to: " + datamemory[r2] + " from: " + oldval);
                     break;
 
             }
 
             if (print) {
 
+                System.out.println(" ALU Result: " + Registers[r1] );
                 System.out.println(" Register number " + r1 + " was changed to: " + Registers[r1] + " from: " + oldR1);
+
             }
             System.out.println();
 
@@ -518,51 +518,37 @@ public class Microcontroller {
         System.out.println(" ");
 
         System.out.println("The 64 General purpose registers (GPRS) contains: ");
-        boolean emptyfRegisters = true;
         for (int i = 0; i < MC.Registers.length; i++) {
-            if ((MC.Registers[i] != 0)) {
-                emptyfRegisters = false;
+         //   if ((MC.Registers[i] != 0)) {
+           //     emptyfRegisters = false;
                 System.out.println(" Register #" + i + " contains: " + MC.Registers[i]);
-            }
+            //}
         }
-        if (emptyfRegisters) {
-            System.out.println("Nothing, the Registers are all of value 0");
-        } else
-            System.out.println("Any Other unmentioned address is of value 0");
 
         System.out.println(" ");
         System.out.println("-----------------------------------");
         System.out.println(" ");
 
         System.out.println("The 2048 Sized Data Memory contains: ");
-        boolean emptyf = true;
 
         for (int i = 0; i < MC.datamemory.length; i++) {
-            if (MC.datamemory[i] != 0) {
-                emptyf = false;
+            //if (MC.datamemory[i] != 0) {
+              //  emptyf = false;
                 System.out.println(" Data Memory address #" + i + " contains: " + ((MC.datamemory[i] == -1) ? "Zero" : MC.datamemory[i]));
-            }
+            //}
         }
-        if (emptyf) {
-            System.out.println("Nothing, the Data Memory is all of value 0");
-        } else {
-            System.out.println("Any Other unmentioned address is of value 0");
-        }
+
         System.out.println(" ");
         System.out.println("-----------------------------------");
         System.out.println(" ");
         System.out.println("The 1024 Sized Instruction Memory contains: ");
-        boolean emptyfInstructions = true;
+
         for (int i = 0; i < MC.instructions.length; i++) {
-            if (MC.instructions[i] != -1) {
-                emptyfInstructions = false;
+            //if (MC.instructions[i] != -1) {
+              //  emptyfInstructions = false;
                 System.out.println(" Instruction Memory address #" + i + " contains: " + ((MC.instructions[i] == -1) ? "NULL" : MC.instructions[i]));
-            }
+            //}
         }
-        if (emptyfInstructions) {
-            System.out.println("Nothing, the Data Memory is Empty");
-        } else
-            System.out.println("Any Other unmentioned address is empty");
 
         System.out.println(" ");
         System.out.println("-----------------------------------");
