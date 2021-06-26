@@ -213,7 +213,6 @@ public class Microcontroller {
         } else {
             fetch = -1;
         }
-        //PC++; could/should it be here?
     }
 
     void decode() {
@@ -286,7 +285,7 @@ public class Microcontroller {
                     byte s2 = (byte) ((temp2 & mask) >> 7);
                     byte s3 = (byte) ((temp3 & mask) >> 7);
                     //V
-                    SREG[4] = s1 == s2 && s1 != s3;
+                    SREG[4] = (s1 == s2) && (s1 != s3);
                     //N
                     SREG[5] = temp3 < 0;
                     SREG[6] = SREG[5] ^ SREG[4]; //S
@@ -321,7 +320,8 @@ public class Microcontroller {
                     s2 = (byte) ((temp2 & mask) >> 7);
                     s3 = (byte) ((temp3 & mask) >> 7);
                     //V
-                    SREG[4] = (s1 == s2) && (s1 != s3); //overflow
+
+                    SREG[4] = (s1 != s2) && (s2 == s3); //overflow
 
                     SREG[5] = temp3 < 0; //negative
 
@@ -340,7 +340,6 @@ public class Microcontroller {
 
                     SREG[3] = getCarry((byte) z,z);
 
-                    //SREG[3] = z > Byte.MAX_VALUE;
                     SREG[5] = Registers[r1]< 0; //negative
                     SREG[7] = Registers[r1] == 0;
 
@@ -366,7 +365,7 @@ public class Microcontroller {
                         System.out.println("PC is now: " + PC);
                         waitBEQZFlag = true;
 
-                        clkCycles = 3*(n - PC) + 1;
+                        clkCycles = n - PC + 3;
                         i = 1;
 
                     }
@@ -422,7 +421,7 @@ public class Microcontroller {
                     waitBEQZFlag = true;
                     System.out.println("PC is now: " + PC);
 
-                    clkCycles = 3*(n - PC) + 1;
+                    clkCycles = n - PC + 3;
                     i = 1;
 
 
@@ -437,18 +436,15 @@ public class Microcontroller {
 
                 case 9://SAR
                     Registers[r1] = (byte) (Registers[r1] >> r2);
-                    if (Registers[r1] != 0) {
-                        SREG[7] = false;
-                    }
-
+                    SREG[7] = ((Registers[r1])) == 0;
                     SREG[5] = Registers[r1] < 0;
 
                     break;
 
                 case 10://LDR
                     Registers[r1] = datamemory[r2];
-
                     break;
+
                 case 11://STR
                     byte oldval = datamemory[r2];
 
@@ -479,12 +475,13 @@ public class Microcontroller {
 
         MC.n = MC.nofLines;
         MC.clkCycles = 3 + ((MC.n - 1) * 1);
+        int clkcyclesn = 1;
 
 
         for (MC.i = 1; MC.i < MC.clkCycles + 1; MC.i++) {
             System.out.println();
 
-            System.out.println("In Clock Cycle number: " + MC.i);
+            System.out.println("In Clock Cycle number: " + clkcyclesn++);
             System.out.println();
             MC.execute();
             if (!MC.waitBEQZFlag) {
@@ -532,10 +529,9 @@ public class Microcontroller {
         System.out.println("The 2048 Sized Data Memory contains: ");
 
         for (int i = 0; i < MC.datamemory.length; i++) {
-            //if (MC.datamemory[i] != 0) {
-              //  emptyf = false;
+
                 System.out.println(" Data Memory address #" + i + " contains: " + ((MC.datamemory[i] == -1) ? "Zero" : MC.datamemory[i]));
-            //}
+
         }
 
         System.out.println(" ");
@@ -544,10 +540,9 @@ public class Microcontroller {
         System.out.println("The 1024 Sized Instruction Memory contains: ");
 
         for (int i = 0; i < MC.instructions.length; i++) {
-            //if (MC.instructions[i] != -1) {
-              //  emptyfInstructions = false;
+
                 System.out.println(" Instruction Memory address #" + i + " contains: " + ((MC.instructions[i] == -1) ? "NULL" : MC.instructions[i]));
-            //}
+
         }
 
         System.out.println(" ");
